@@ -19,7 +19,7 @@ describe('LandingNav', () => {
     const postsLink = screen.getByRole('link', { name: /posts/i })
     const aboutLink = screen.getByRole('link', { name: /about/i })
 
-    expect(postsLink).toHaveAttribute('href', '/posts')
+    expect(postsLink).toHaveAttribute('href', '/post')
     expect(aboutLink).toHaveAttribute('href', '/about')
   })
 

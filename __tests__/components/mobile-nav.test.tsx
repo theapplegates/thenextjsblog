@@ -62,13 +62,13 @@ describe('MobileNav', () => {
       const postsLink = screen.getByRole('link', { name: /posts/i })
       const aboutLink = screen.getByRole('link', { name: /about/i })
 
-      expect(postsLink).toHaveAttribute('href', '/posts')
+      expect(postsLink).toHaveAttribute('href', '/post')
       expect(aboutLink).toHaveAttribute('href', '/about')
     })
   })
 
   it('should highlight active route', async () => {
-    vi.mocked(usePathname).mockReturnValue('/posts')
+    vi.mocked(usePathname).mockReturnValue('/post')
 
     const { user } = render(<MobileNav />)
 

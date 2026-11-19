@@ -24,8 +24,8 @@ describe('cn', () => {
 })
 
 describe('getTagUrl', () => {
-  it('should return /posts if tag is All', () => {
-    expect(getTagUrl('All')).toBe('/posts')
+  it('should return /post if tag is All', () => {
+    expect(getTagUrl('All')).toBe('/post')
   })
 
   it('should return /tag/foo if tag is foo', () => {

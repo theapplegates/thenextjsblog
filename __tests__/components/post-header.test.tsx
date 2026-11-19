@@ -10,7 +10,7 @@ describe('PostHeader', () => {
     render(<PostHeader locale={defaultLocale} />)
 
     const backButton = screen.getByRole('link', { name: /back to all articles/i })
-    expect(backButton).toHaveAttribute('href', '/posts')
+    expect(backButton).toHaveAttribute('href', '/post')
   })
 
   it('should render tags when provided', () => {
