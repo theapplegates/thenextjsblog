@@ -438,6 +438,32 @@ some.code()
 
 ![本地图片](/thumbnails/laptop-computer-on-table.jpg)
 
+### Cloudinary 图片
+
+```mdx
+<cloudinary-picture
+  src="thumbnails/parker-nate-sWh34pTylRk-unsplash"
+  alt="夜晚雨中霓虹灯下的东京街道"
+  width="4000"
+  height="5000"
+  sizes="(min-width: 768px) 720px, 100vw"
+  breakpoints="200, 455, 637, 784, 917, 1058, 1197, 1240, 1399, 1460, 1747, 1896, 1919, 1920"
+  picture-class="responsive-picture"
+/>
+```
+
+渲染为带 WebP 回退的响应式 JXL → AVIF → WebP 图片：
+
+<cloudinary-picture
+  src="thumbnails/parker-nate-sWh34pTylRk-unsplash"
+  alt="夜晚雨中霓虹灯下的东京街道"
+  width="4000"
+  height="5000"
+  sizes="(min-width: 768px) 720px, 100vw"
+  breakpoints="200, 455, 637, 784, 917, 1058, 1197, 1240, 1399, 1460, 1747, 1896, 1919, 1920"
+  picture-class="responsive-picture"
+/>
+
 ### 远程图片
 
 ```md

@@ -206,6 +206,19 @@
   }
 }
 
+@layer components {
+  .responsive-picture {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-picture img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

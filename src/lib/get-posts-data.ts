@@ -17,6 +17,7 @@ import remarkGemoji from 'remark-gemoji'
 import remarkGfm from 'remark-gfm'
 import remarkGitHub from 'remark-github'
 import remarkMath from 'remark-math'
+import rehypeCloudinaryPicture from '@/lib/rehype-cloudinary-picture'
 import rehypeUnwrapImages from '@/lib/rehype-unwrap-images'
 import remarkAdmonitions from '@/lib/remark-admonitions'
 import { siteConfig } from '@/lib/site'
@@ -77,6 +78,7 @@ async function generatePostData(filePath: string): Promise<Post> {
         [rehypeAutolinkHeadings, { behavior: 'append' }],
         rehypeExternalLinks,
         rehypeKatex,
+        rehypeCloudinaryPicture,
         rehypeMdxCodeProps,
         rehypeUnwrapImages,
       ],

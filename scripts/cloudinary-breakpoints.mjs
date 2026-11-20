@@ -2,12 +2,17 @@
 //
 // Uploads local blog images to Cloudinary (or reuses an existing upload) and
 // asks Cloudinary for responsive breakpoints. The resulting manifest is read by
-// src/components/post-image.tsx at build time.
+// src/components/post-image.tsx and src/lib/rehype-cloudinary-picture.ts.
+//
+// For every image it also prints a paste-ready <cloudinary-picture> snippet
+// for MDX posts. The tag is rendered at build time into a JXL -> AVIF -> WebP
+// <picture>, so no import or browser script is needed.
 //
 // Usage:
 //   pnpm cloudinary:breakpoints
 //   pnpm cloudinary:breakpoints public/thumbnails/photo.jpg
 //   pnpm cloudinary:breakpoints public/thumbnails/*.jpg
+//   pnpm cloudinary:breakpoints public/thumbnails/photo.jpg --sizes="100vw"
 //
 // Credentials live in .env.local (never commit that file):
 //   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
@@ -27,6 +32,11 @@ const JSON_PATH = join(DATA_DIR, 'cloudinary-breakpoints.json')
 const PUBLIC_DIR = join(ROOT, 'public')
 const ASSETS_DIR = join(ROOT, 'src', 'assets', 'images')
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif'])
+
+// Matches the default used by inline MDX images. Override per image with
+// --sizes="..." on the command line or sizes="..." in the tag.
+const DEFAULT_SIZES
+  = '(max-width: 768px) calc(100vw - 3rem), (max-width: 1280px) 720px, 814px'
 
 // .env.local wins over .env. Existing shell variables still take priority.
 dotenv.config({ path: join(ROOT, '.env.local'), quiet: true })
@@ -186,16 +196,66 @@ async function writeManifest(map) {
 function printHelp() {
   console.log(`
 Usage:
-  pnpm cloudinary:breakpoints
-  pnpm cloudinary:breakpoints <image> [<image> ...]
+  pnpm cloudinary:breakpoints [--sizes="..."] [<image> ...]
 
 Examples:
   pnpm cloudinary:breakpoints public/thumbnails/photo.jpg
   pnpm cloudinary:breakpoints public/thumbnails/*.jpg
+  pnpm cloudinary:breakpoints public/thumbnails/photo.jpg --sizes="100vw"
 
-With no arguments, every JPG, PNG, WebP, and AVIF under public/ and
+With no image arguments, every JPG, PNG, WebP, and AVIF under public/ and
 src/assets/images/ is uploaded and analyzed.
+
+For each image a ready-to-paste <cloudinary-picture> snippet is printed.
+Put it in an MDX post and replace the alt text. No import is needed: the tag
+is rendered at build time into a JXL -> AVIF -> WebP <picture>.
 `)
+}
+
+function buildSnippet(publicId, entry, sizes) {
+  const lines = [
+    '<cloudinary-picture',
+    `  src="${publicId}"`,
+    '  alt="TODO: describe this image"',
+  ]
+
+  if (entry.width !== undefined) {
+    lines.push(`  width="${entry.width}"`)
+  }
+
+  if (entry.height !== undefined) {
+    lines.push(`  height="${entry.height}"`)
+  }
+
+  lines.push(
+    `  sizes="${sizes}"`,
+    `  breakpoints="${entry.breakpoints.join(', ')}"`,
+    '  picture-class="responsive-picture"',
+    '/>',
+  )
+
+  return lines.join('\n')
+}
+
+function printSnippet(publicId, entry, sizes) {
+  console.log('\nPaste this into an MDX post (replace the alt text):\n')
+  console.log(buildSnippet(publicId, entry, sizes))
+  console.log('')
+}
+
+function parseArgs(args) {
+  let sizes = DEFAULT_SIZES
+  const files = []
+
+  for (const arg of args) {
+    if (arg.startsWith('--sizes=')) {
+      sizes = arg.slice('--sizes='.length).replace(/^["']|["']$/g, '')
+    } else {
+      files.push(arg)
+    }
+  }
+
+  return { files, sizes }
 }
 
 async function main() {
@@ -205,6 +265,8 @@ async function main() {
     printHelp()
     return
   }
+
+  const { files: fileArgs, sizes } = parseArgs(args)
 
   if (cloudName === undefined || cloudName === '') {
     throw new Error(
@@ -221,7 +283,7 @@ async function main() {
     )
   }
 
-  let files = args
+  let files = fileArgs
 
   if (files.length === 0) {
     const publicImages = await findImages(PUBLIC_DIR)
@@ -246,9 +308,13 @@ async function main() {
     console.log(
       `${publicId}: ${entry.breakpoints.join(', ')} (${entry.width ?? '?'} × ${entry.height ?? '?'})`,
     )
+    printSnippet(publicId, entry, sizes)
   }
 
-  console.log(`\nSaved ${succeeded} image${succeeded === 1 ? '' : 's'} to ${JSON_PATH}`)
+  console.log(
+    `\nSaved ${succeeded} image${succeeded === 1 ? '' : 's'} to ${JSON_PATH}`,
+  )
+  console.log('Copy the snippet(s) above into an MDX post.')
 }
 
 main().catch((error) => {
