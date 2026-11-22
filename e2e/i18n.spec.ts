@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('i18n', () => {
   test('default locale (en-US) has locale prefix in URL', async ({ page }) => {
-    await page.goto('/posts')
+    await page.goto('/post')
     await expect(page).toHaveURL(/\/en-US/)
 
     const html = page.locator('html')
@@ -11,7 +11,7 @@ test.describe('i18n', () => {
   })
 
   test('Chinese locale(zh-CN) has locale prefix in URL', async ({ page }) => {
-    await page.goto('/zh-CN/posts')
+    await page.goto('/zh-CN/post')
     await expect(page).toHaveURL(/\/zh-CN/)
 
     const html = page.locator('html')

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Post Detail Page', () => {
   test('displays post header and content successfully', async ({ page }) => {
-    await page.goto('/posts')
+    await page.goto('/post')
     const postLink = page.locator('a[href*="/post/"]').first()
     await postLink.click()
     await page.waitForURL(/\/post\//)

@@ -7,7 +7,7 @@ function getKeyboardShortcut() {
 
 test.describe('Command Menu', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/posts')
+    await page.goto('/post')
   })
 
   test('opens and closes command menu with keyboard shortcut', async ({ page }) => {

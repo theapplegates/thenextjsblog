@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Tag Filter Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/posts')
+    await page.goto('/post')
   })
 
   test('navigates between all posts page and tag page when clicking tag link', async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe('Tag Filter Page', () => {
 
     const allTag = page.getByRole('link', { name: /all/i }).first()
     await allTag.click()
-    await expect(page).toHaveURL(/\/posts/)
+    await expect(page).toHaveURL(/\/post/)
   })
 
   test('displays filtered posts for selected tag', async ({ page }) => {

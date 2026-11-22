@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/posts')
+    await page.goto('/post')
   })
 
   test('displays main navigation with posts and about links', async ({ page }) => {
-    const postsLink = page.getByRole('link', { name: /posts/i })
+    const postsLink = page.getByRole('link', { name: /post/i })
     await expect(postsLink.first()).toBeVisible()
     const aboutLink = page.getByRole('link', { name: /about/i })
     await expect(aboutLink.first()).toBeVisible()

@@ -5,16 +5,15 @@ test.describe('Home Page', () => {
     await page.goto('/')
   })
 
-  test('loads successfully with main content', async ({ page }) => {
-    await expect(page).toHaveTitle(/Sabertaz Blog/)
-    const mainContent = page.getByTestId('hero-section')
-    await expect(mainContent).toBeVisible()
-    await expect(mainContent).toHaveText(/Coder|Developer|Learner/)
+  test('redirects to the posts page', async ({ page }) => {
+    await expect(page).toHaveURL(/\/post$/)
+    await expect(page).toHaveTitle(/All Posts/)
+    await expect(page.getByRole('heading', { name: 'Sabertaz Blog', level: 1 })).toBeVisible()
   })
 
   test('navigates to posts page', async ({ page }) => {
-    const postsLink = page.getByRole('link', { name: /posts/i })
+    const postsLink = page.getByRole('link', { name: /post/i })
     await postsLink.click()
-    await expect(page).toHaveURL(/\/posts/)
+    await expect(page).toHaveURL(/\/post/)
   })
 })

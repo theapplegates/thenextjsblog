@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('Theme Switcher', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/posts')
+    await page.goto('/post')
   })
 
   test('displays theme toggle button', async ({ page }) => {

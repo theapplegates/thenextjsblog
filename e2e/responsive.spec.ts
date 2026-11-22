@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test.describe('Responsive Layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 })
-    await page.goto('/posts')
+    await page.goto('/post')
   })
 
   test('displays posts page with mobile tag trigger', async ({ page }) => {

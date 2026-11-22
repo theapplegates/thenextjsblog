@@ -1,4 +1,64 @@
 {
+  "assets/images/georgi-kalaydzhiev-DoCxLTMsjac-unsplash": {
+    "width": 5096,
+    "height": 7640,
+    "breakpoints": [
+      200,
+      382,
+      544,
+      658,
+      807,
+      913,
+      1014,
+      1126,
+      1211,
+      1314,
+      1381,
+      1391,
+      1694,
+      1770,
+      1803,
+      1856,
+      1920
+    ]
+  },
+  "assets/images/lucas-schneider-ZamSxRBO5WI-unsplash": {
+    "width": 4672,
+    "height": 6224,
+    "breakpoints": [
+      200,
+      429,
+      589,
+      731,
+      859,
+      987,
+      1129,
+      1245,
+      1324,
+      1380,
+      1515,
+      1598,
+      1601,
+      1800,
+      1900,
+      1910,
+      1920
+    ]
+  },
+  "images/banner": {
+    "width": 200,
+    "height": 200,
+    "breakpoints": [
+      200
+    ]
+  },
+  "images/banner-light": {
+    "width": 200,
+    "height": 200,
+    "breakpoints": [
+      200
+    ]
+  },
   "thumbnails/laptop-ai-workspace": {
     "width": 6934,
     "height": 4623,
@@ -30,25 +90,44 @@
     "height": 3376,
     "breakpoints": [
       200,
-      415,
-      430,
-      812,
-      844,
-      868,
-      1159,
-      1220,
-      1282,
-      1361,
-      1463,
-      1541,
-      1611,
-      1675,
-      1845,
-      1913,
+      417,
+      552,
+      731,
+      856,
+      966,
+      1060,
+      1202,
+      1289,
+      1370,
+      1433,
+      1713,
+      1822,
+      1872,
+      1905,
       1920
     ]
   },
   "thumbnails/parker-nate-sWh34pTylRk-unsplash": {
+    "width": 4000,
+    "height": 5000,
+    "breakpoints": [
+      200,
+      455,
+      637,
+      784,
+      917,
+      1058,
+      1197,
+      1240,
+      1399,
+      1460,
+      1747,
+      1896,
+      1919,
+      1920
+    ]
+  },
+  "thumbnails/parker-nate-sWh34pTylRk-unsplash_2": {
     "width": 4000,
     "height": 5000,
     "breakpoints": [
