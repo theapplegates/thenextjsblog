@@ -27,6 +27,7 @@
   "browserslist": "last 2 versions",
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/build-search-index.mjs",
     "clone": "git clone https://$VERCEL_GIT_PROVIDER.com/$VERCEL_GIT_REPO_OWNER/$VERCEL_GIT_REPO_SLUG && rm -fr .git && cp -fr $VERCEL_GIT_REPO_SLUG/.git . && rm -fr $VERCEL_GIT_REPO_SLUG",
     "build": "next build",
     "serve": "next start",

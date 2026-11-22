@@ -30,9 +30,10 @@
   "commandMenu": {
     "searchLabel": "Search posts and tags",
     "searchPlaceholder": "Search posts or tags...",
-    "searchDescription": "Search for posts by title or tags",
+    "searchDescription": "Search posts by title, content, or tags",
     "searchPostsShort": "Search...",
     "searchPostsLong": "Search posts...",
+    "searching": "Searching...",
     "noResults": "No results found.",
     "posts": "Posts",
     "tags": "Tags",

@@ -30,9 +30,10 @@
   "commandMenu": {
     "searchLabel": "搜索文章和标签",
     "searchPlaceholder": "搜索文章或标签...",
-    "searchDescription": "按标题或标签搜索文章",
+    "searchDescription": "按标题、正文或标签搜索文章",
     "searchPostsShort": "搜索...",
     "searchPostsLong": "搜索文章...",
+    "searching": "搜索中...",
     "noResults": "未找到结果。",
     "posts": "文章",
     "tags": "标签",

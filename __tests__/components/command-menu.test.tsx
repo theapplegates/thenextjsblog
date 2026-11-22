@@ -205,7 +205,7 @@ describe('CommandMenu', () => {
     await user.type(searchInput, 'Test Post 1')
 
     await waitFor(() => {
-      expect(screen.getByText('Test Post 1')).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /Test\s*Post\s*1/ })).toBeInTheDocument()
     })
   })
 
@@ -329,7 +329,7 @@ describe('CommandMenu', () => {
     expect(searchInput).toHaveValue('test')
 
     // Select a post to close dialog
-    const postItem = screen.getByText('Test Post 1')
+    const postItem = screen.getByRole('option', { name: /Test\s*Post\s*1/ })
     await user.click(postItem)
 
     // Dialog should close
