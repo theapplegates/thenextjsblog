@@ -259,13 +259,6 @@
   }
 }
 
-
-
-
-Add this at the very end of `global.css` as a safety net:
-
-
-
 html,
 body {
   max-width: 100%;

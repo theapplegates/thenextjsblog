@@ -8,6 +8,7 @@ import { MDXCode } from '@/components/mdx-code'
 import { MDXImage } from '@/components/mdx-image'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ResponsivePicture } from '@/components/ResponsivePicture'
 
 interface PostContentProps {
   source: MDXRemoteSerializeResult
@@ -23,6 +24,7 @@ const mdxComponents = {
   pre: MDXCode,
   Button,
   Editor: MDXEditor,
+  ResponsivePicture,
 }
 
 export function PostContent({ source }: PostContentProps) {

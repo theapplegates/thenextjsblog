@@ -168,5 +168,31 @@
       1914,
       1920
     ]
+  },
+  "src/assets/images/clay-banks-HCzMheZCyyQ-unsplash.jpg": {
+    "publicId": "assets/images/clay-banks-HCzMheZCyyQ-unsplash",
+    "width": 3044,
+    "height": 2033,
+    "format": "jpg",
+    "bytes": 1093037,
+    "version": 1795492168,
+    "hash": "c728f72d5738273698764f7851f1102c533574e2",
+    "uploadedAt": "2026-11-24T03:49:28.437Z",
+    "cached": false,
+    "breakpoints": [
+      200,
+      320,
+      480,
+      640,
+      800,
+      960,
+      1200,
+      1440,
+      1600,
+      1920,
+      2400,
+      3000,
+      3044
+    ]
   }
 }

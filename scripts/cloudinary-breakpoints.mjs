@@ -1,323 +1,170 @@
-// scripts/cloudinary-breakpoints.mjs
-//
-// Uploads local blog images to Cloudinary (or reuses an existing upload) and
-// asks Cloudinary for responsive breakpoints. The resulting manifest is read by
-// src/components/post-image.tsx and src/lib/rehype-cloudinary-picture.ts.
-//
-// For every image it also prints a paste-ready <cloudinary-picture> snippet
-// for MDX posts. The tag is rendered at build time into a JXL -> AVIF -> WebP
-// <picture>, so no import or browser script is needed.
-//
-// Usage:
-//   pnpm cloudinary:breakpoints
-//   pnpm cloudinary:breakpoints public/thumbnails/photo.jpg
-//   pnpm cloudinary:breakpoints public/thumbnails/*.jpg
-//   pnpm cloudinary:breakpoints public/thumbnails/photo.jpg --sizes="100vw"
-//
-// Credentials live in .env.local (never commit that file):
-//   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
-//   CLOUDINARY_API_KEY=your-api-key
-//   CLOUDINARY_API_SECRET=your-api-secret
+#!/usr/bin/env node
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join, parse, relative, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { v2 as cloudinary } from 'cloudinary'
-import dotenv from 'dotenv'
+import {
+  resolveCloudName,
+  computeBreakpoints,
+  buildPictureHtml,
+} from '../src/lib/cloudinary-picture.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = resolve(__dirname, '..')
-const DATA_DIR = join(ROOT, 'src', 'data')
-const JSON_PATH = join(DATA_DIR, 'cloudinary-breakpoints.json')
-const PUBLIC_DIR = join(ROOT, 'public')
-const ASSETS_DIR = join(ROOT, 'src', 'assets', 'images')
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif'])
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const CACHE_PATH = path.join(ROOT, 'src/data/cloudinary-breakpoints.json');
 
-// Matches the default used by inline MDX images. Override per image with
-// --sizes="..." on the command line or sizes="..." in the tag.
-const DEFAULT_SIZES
-  = '(max-width: 768px) calc(100vw - 3rem), (max-width: 1280px) 720px, 814px'
-
-// .env.local wins over .env. Existing shell variables still take priority.
-dotenv.config({ path: join(ROOT, '.env.local'), quiet: true })
-dotenv.config({ path: join(ROOT, '.env'), quiet: true })
-
-const cloudName
-  = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-    ?? process.env.CLOUDINARY_CLOUD_NAME
-    ?? process.env.PUBLIC_CLOUDINARY_CLOUD_NAME
-
-cloudinary.config({
-  cloud_name: cloudName,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-})
-
-const RESPONSIVE_BREAKPOINTS = [
-  {
-    create_derived: true,
-    bytes_step: 200,
-    min_width: 200,
-    max_width: 1920,
-    max_images: 20,
-  },
-]
-
-function isNotFound(error) {
-  return (
-    error?.http_code === 404
-    || error?.statusCode === 404
-    || error?.error?.http_code === 404
-  )
-}
-
-function pathToPublicId(filePath) {
-  const absolutePath = resolve(ROOT, filePath)
-
-  const relativePublic = relative(PUBLIC_DIR, absolutePath).replace(/\\/g, '/')
-  if (!relativePublic.startsWith('..')) {
-    const { dir, name } = parse(relativePublic)
-    return dir === '' ? name : `${dir}/${name}`
-  }
-
-  const relativeAssets = relative(ASSETS_DIR, absolutePath).replace(/\\/g, '/')
-  if (!relativeAssets.startsWith('..')) {
-    const { dir, name } = parse(relativeAssets)
-    return dir === ''
-      ? `assets/images/${name}`
-      : `assets/images/${dir}/${name}`
-  }
-
-  throw new Error(
-    `Image must be inside public/ or src/assets/images/. Received: ${filePath}`,
-  )
-}
-
-function isImageFile(filePath) {
-  return IMAGE_EXTENSIONS.has(parse(filePath).ext.toLowerCase())
-}
-
-async function findImages(directoryPath) {
-  const found = []
-
-  async function walk(currentPath) {
-    let entries
-    try {
-      entries = await readdir(currentPath, { withFileTypes: true })
-    } catch {
-      return
-    }
-
-    for (const entry of entries) {
-      const entryPath = join(currentPath, entry.name)
-      if (entry.isDirectory()) {
-        await walk(entryPath)
-      } else if (entry.isFile() && isImageFile(entry.name)) {
-        found.push(entryPath)
-      }
-    }
-  }
-
-  await walk(directoryPath)
-  return found
-}
-
-function extractEntry(result) {
-  const breakpoints = result.responsive_breakpoints?.[0]?.breakpoints
-
-  if (!Array.isArray(breakpoints) || breakpoints.length === 0) {
-    throw new Error('Cloudinary returned no responsive breakpoints')
-  }
-
-  const widths = [...new Set(
-    breakpoints
-      .map(breakpoint => Number(breakpoint.width))
-      .filter(width => Number.isFinite(width) && width > 0),
-  )].sort((a, b) => a - b)
-
-  if (widths.length === 0) {
-    throw new Error('Cloudinary returned breakpoints without usable widths')
-  }
-
-  return {
-    width: Number.isFinite(Number(result.width)) ? Number(result.width) : undefined,
-    height: Number.isFinite(Number(result.height)) ? Number(result.height) : undefined,
-    breakpoints: widths,
-  }
-}
-
-async function analyzeExisting(publicId) {
-  return cloudinary.uploader.explicit(publicId, {
-    type: 'upload',
-    responsive_breakpoints: RESPONSIVE_BREAKPOINTS,
-  })
-}
-
-async function upload(publicId, localPath) {
-  return cloudinary.uploader.upload(localPath, {
-    public_id: publicId,
-    overwrite: false,
-    responsive_breakpoints: RESPONSIVE_BREAKPOINTS,
-  })
-}
-
-async function ensureEntry(publicId, localPath) {
-  try {
-    return extractEntry(await analyzeExisting(publicId))
-  } catch (error) {
-    if (!isNotFound(error)) {
-      throw error
-    }
-  }
-
-  return extractEntry(await upload(publicId, localPath))
-}
-
-async function loadMap() {
-  try {
-    return JSON.parse(await readFile(JSON_PATH, 'utf8'))
-  } catch {
-    return {}
-  }
-}
-
-async function writeManifest(map) {
-  const sortedMap = Object.fromEntries(
-    Object.keys(map)
-      .sort()
-      .map(key => [key, map[key]]),
-  )
-
-  await mkdir(DATA_DIR, { recursive: true })
-  await writeFile(JSON_PATH, `${JSON.stringify(sortedMap, null, 2)}\n`)
-}
-
-function printHelp() {
-  console.log(`
-Usage:
-  pnpm cloudinary:breakpoints [--sizes="..."] [<image> ...]
-
-Examples:
-  pnpm cloudinary:breakpoints public/thumbnails/photo.jpg
-  pnpm cloudinary:breakpoints public/thumbnails/*.jpg
-  pnpm cloudinary:breakpoints public/thumbnails/photo.jpg --sizes="100vw"
-
-With no image arguments, every JPG, PNG, WebP, and AVIF under public/ and
-src/assets/images/ is uploaded and analyzed.
-
-For each image a ready-to-paste <cloudinary-picture> snippet is printed.
-Put it in an MDX post and replace the alt text. No import is needed: the tag
-is rendered at build time into a JXL -> AVIF -> WebP <picture>.
-`)
-}
-
-function buildSnippet(publicId, entry, sizes) {
-  const lines = [
-    '<cloudinary-picture',
-    `  src="${publicId}"`,
-    '  alt="TODO: describe this image"',
-  ]
-
-  if (entry.width !== undefined) {
-    lines.push(`  width="${entry.width}"`)
-  }
-
-  if (entry.height !== undefined) {
-    lines.push(`  height="${entry.height}"`)
-  }
-
-  lines.push(
-    `  sizes="${sizes}"`,
-    `  breakpoints="${entry.breakpoints.join(', ')}"`,
-    '  picture-class="responsive-picture"',
-    '/>',
-  )
-
-  return lines.join('\n')
-}
-
-function printSnippet(publicId, entry, sizes) {
-  console.log('\nPaste this into an MDX post (replace the alt text):\n')
-  console.log(buildSnippet(publicId, entry, sizes))
-  console.log('')
-}
-
-function parseArgs(args) {
-  let sizes = DEFAULT_SIZES
-  const files = []
-
-  for (const arg of args) {
-    if (arg.startsWith('--sizes=')) {
-      sizes = arg.slice('--sizes='.length).replace(/^["']|["']$/g, '')
+// ---- CLI arg parsing -------------------------------------------------------
+function parseArgs(argv) {
+  const out = {};
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith('--')) {
+      const eq = a.indexOf('=');
+      if (eq !== -1) out[a.slice(2, eq)] = a.slice(eq + 1);
+      else if (argv[i + 1] && !argv[i + 1].startsWith('--')) out[a.slice(2)] = argv[++i];
+      else out[a.slice(2)] = true;
     } else {
-      files.push(arg)
+      (out._ ||= []).push(a);
     }
   }
-
-  return { files, sizes }
+  return out;
 }
 
+function parseDevices(str) {
+  if (!str) return undefined;
+  return String(str).split(',').map((chunk) => {
+    const [minW, pct, ratio] = chunk.trim().split('|');
+    const minWidth = parseInt(minW, 10);
+    const percent = parseFloat(pct);
+    if (!Number.isFinite(minWidth) || !Number.isFinite(percent)) {
+      throw new Error(`Bad --devices entry: ${chunk}`);
+    }
+    return { minWidth, percent, ratio: ratio && ratio !== 'original' ? ratio : undefined };
+  });
+}
+
+// ---- Cache -----------------------------------------------------------------
+async function readCache() {
+  try { return JSON.parse(await fs.readFile(CACHE_PATH, 'utf8')); }
+  catch { return {}; }
+}
+async function writeCache(cache) {
+  await fs.mkdir(path.dirname(CACHE_PATH), { recursive: true });
+  await fs.writeFile(CACHE_PATH, JSON.stringify(cache, null, 2) + '\n');
+}
+
+// ---- Identity --------------------------------------------------------------
+function derivePublicId(absPath) {
+  const rel = path.relative(ROOT, absPath).replace(/\\/g, '/');
+  return rel.replace(/\.[^./]+$/, '').replace(/^(src|public)\//, '');
+}
+
+// ---- Upload ----------------------------------------------------------------
+async function uploadIfNeeded({ absPath, relKey, publicId, force }) {
+  const cloudName = resolveCloudName();
+  if (!cloudName) throw new Error('Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME (or PUBLIC_CLOUDINARY_CLOUD_NAME)');
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  if (!apiKey || !apiSecret) throw new Error('CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET required to upload');
+
+  const buf = await fs.readFile(absPath);
+  const hash = createHash('sha1').update(buf).digest('hex');
+
+  const cache = await readCache();
+  const prev = cache[relKey];
+  if (!force && prev && prev.hash === hash && prev.publicId === publicId) {
+    return { ...prev, cached: true };
+  }
+
+  const { v2: cloudinary } = await import('cloudinary');
+  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+
+  const result = await cloudinary.uploader.upload(absPath, {
+    public_id: publicId,
+    overwrite: true,
+    resource_type: 'image',
+    invalidate: true,
+  });
+
+  const entry = {
+    publicId,
+    width: result.width,
+    height: result.height,
+    format: result.format,
+    bytes: result.bytes,
+    version: result.version,
+    hash,
+    uploadedAt: new Date().toISOString(),
+  };
+  cache[relKey] = { ...(cache[relKey] || {}), ...entry };
+  await writeCache(cache);
+  return { ...entry, cached: false };
+}
+
+// ---- Main ------------------------------------------------------------------
 async function main() {
-  const args = process.argv.slice(2)
-
-  if (args.includes('--help') || args.includes('-h')) {
-    printHelp()
-    return
+  const args = parseArgs(process.argv.slice(2));
+  const input = args._?.[0];
+  if (!input) {
+    console.error(
+      'Usage: npm run cloudinary:breakpoints -- <path/to/image> [options]\n' +
+      'Options:\n' +
+      '  --sizes="(min-width: 768px) 720px, 100vw"\n' +
+      '  --alt="Describe photo"\n' +
+      '  --widths="200,400,800,1600"\n' +
+      '  --public-id="custom/path/id"\n' +
+      '  --devices="1200|40|original,992|60|16:9,768|70|4:3,0|100|1:1"\n' +
+      '  --force                 re-upload even if cached hash matches\n' +
+      '  --no-upload             use cached metadata only\n'
+    );
+    process.exit(1);
   }
 
-  const { files: fileArgs, sizes } = parseArgs(args)
+  const absPath = path.resolve(ROOT, input);
+  const relKey = path.relative(ROOT, absPath).replace(/\\/g, '/');
+  const publicId = args['public-id'] || derivePublicId(absPath);
+  const sizes = args.sizes || '100vw';
+  const alt = typeof args.alt === 'string' ? args.alt : '';
+  const customWidths = args.widths
+    ? String(args.widths).split(',').map((w) => parseInt(w.trim(), 10)).filter(Boolean)
+    : undefined;
+  const devices = parseDevices(args.devices);
 
-  if (cloudName === undefined || cloudName === '') {
-    throw new Error(
-      'Missing Cloudinary cloud name. Add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME to .env.local.',
-    )
+  let meta;
+  if (args['no-upload']) {
+    const cache = await readCache();
+    meta = cache[relKey];
+    if (!meta) throw new Error(`No cache entry for ${relKey}; run once without --no-upload`);
+  } else {
+    meta = await uploadIfNeeded({ absPath, relKey, publicId, force: !!args.force });
   }
 
-  if (
-    process.env.CLOUDINARY_API_KEY === undefined
-    || process.env.CLOUDINARY_API_SECRET === undefined
-  ) {
-    throw new Error(
-      'Missing CLOUDINARY_API_KEY or CLOUDINARY_API_SECRET. Add both to .env.local.',
-    )
-  }
+  const breakpoints = computeBreakpoints(meta.width, customWidths);
 
-  let files = fileArgs
+  const html = buildPictureHtml({
+    cloudName: resolveCloudName(),
+    publicId,
+    width: meta.width,
+    height: meta.height,
+    alt,
+    sizes,
+    breakpoints,
+    devices,
+  });
 
-  if (files.length === 0) {
-    const publicImages = await findImages(PUBLIC_DIR)
-    const assetImages = await findImages(ASSETS_DIR)
-    files = [...publicImages, ...assetImages]
-  }
+  const cache = await readCache();
+  cache[relKey] = { ...(cache[relKey] || {}), ...meta, breakpoints };
+  await writeCache(cache);
 
-  if (files.length === 0) {
-    console.log('No images found. Nothing to do.')
-    return
-  }
-
-  const map = await loadMap()
-  let succeeded = 0
-
-  for (const file of files) {
-    const publicId = pathToPublicId(file)
-    const entry = await ensureEntry(publicId, resolve(ROOT, file))
-    map[publicId] = entry
-    await writeManifest(map)
-    succeeded += 1
-    console.log(
-      `${publicId}: ${entry.breakpoints.join(', ')} (${entry.width ?? '?'} × ${entry.height ?? '?'})`,
-    )
-    printSnippet(publicId, entry, sizes)
-  }
-
-  console.log(
-    `\nSaved ${succeeded} image${succeeded === 1 ? '' : 's'} to ${JSON_PATH}`,
-  )
-  console.log('Copy the snippet(s) above into an MDX post.')
+  console.log(html);
+  console.error(`\n# ${meta.cached ? 'cached' : 'uploaded'}: ${relKey}`);
+  console.error(`# public_id: ${publicId}`);
+  console.error(`# natural:   ${meta.width} × ${meta.height}`);
+  if (devices) console.error(`# devices:   ${devices.length} art-directed crops`);
+  else console.error(`# breakpoints: ${breakpoints.join(', ')}`);
 }
 
-main().catch((error) => {
-  console.error(`\nCloudinary breakpoint generation failed: ${error.message}`)
-  process.exit(1)
-})
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

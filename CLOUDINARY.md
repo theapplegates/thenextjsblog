@@ -1,5 +1,7 @@
 # Responsive images with Cloudinary
 
+/Users/paulapplegate/Documents/Nextjs-jxl-working-checkout/
+
 This project serves blog images through Cloudinary as responsive `<picture>` elements.
 
 For every image, the browser is offered three formats in this order:
