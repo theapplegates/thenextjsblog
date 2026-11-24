@@ -1,5 +1,4 @@
-import { buildPictureProps, resolveCloudName } from '@/lib/cloudinary-picture.mjs';
-import type { DeviceSource } from '@/lib/cloudinary-picture';
+import { buildPictureProps, resolveCloudName, type DeviceSource } from '@/lib/cloudinary-picture';
 
 type Props = {
   publicId: string;
